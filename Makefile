@@ -1,5 +1,12 @@
 DBOUT='"/tmp/terms.bin"'
-all:database
+CFLAGS=-Wall `mysql_config --cflags`
+all:jkentbin
+libjkentbin:lib src/jkentbin.c
+	gcc $(CFLAGS) src/jkentbin.c
+	
+lib:
+	mkdir -p lib
+
 data/go_daily-termdb.rdf-xml:
 	mkdir -p data
 	wget -O data/go_daily-termdb.rdf-xml.gz "http://archive.geneontology.org/latest-termdb/go_daily-termdb.rdf-xml.gz"
