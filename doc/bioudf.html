@@ -1,0 +1,57 @@
+<html>
+<head>
+<title>Mysql User Defined Functions for Bioinformatics</title>
+<style>
+body	{
+	background-color:white;
+	color:black;
+	margin:10px;
+	padding:10px;
+	}
+
+h1,h2,h3,h4	{
+	font-family:Arial,Helvetica,Sans-Serif;
+	margin:10px;
+	padding:10px;
+	}
+
+h1	{
+	background-color:blue;
+	color:white;
+	text-align:center;
+	font-size:200%;
+	}
+pre	{
+	background-color:lightgray;
+	font-size:150%;
+	padding:10px;
+	}
+</style>
+</head>
+<body>
+<h1>Mysql User Defined Functions for Bioinformatics</h1>
+<h2>Introduction</h2>
+<h2>BioUDFs</h2>
+<h3>Translate</h3>
+<h4>About</h4><p>Translate a DNA to a protein using the standard genetic code.</p>
+<h4>Create Function</h4>
+<pre>CREATE FUNCTION translate RETURNS STRING SONAME 'translate.so';
+Query OK, 0 rows affected (0.03 sec)
+</pre>
+<h4>Invoke Function</h4>
+<pre>select translate("atggagaggcagaaacggaaggcggacatcgagaaagggctgca") as "roxan";
++----------------+
+| roxan          |
++----------------+
+| MERQKRKADIEKGL |
++----------------+
+1 row in set (0.00 sec)
+
+</pre>
+<h4>Drop Function</h4>
+<pre>DROP FUNCTION translate;
+Query OK, 0 rows affected (0.00 sec)</pre>
+<hr/>
+<a href="http://plindenbaum.blogspot.com">Pierre Lindenbaum PhD.</a> 2010.
+</body>
+</html>
