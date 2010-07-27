@@ -3,10 +3,9 @@
 #include <mysql.h>
 #include <m_string.h>
 #include <stdio.h>
-#include "term.h"
-#ifndef GO_PATH
-	#error "$GO_PATH was not defined !"
-#endif
+#include <ctype.h>
+#include "go_database.h"
+
 
 /*
 create function go_isa RETURNS INTEGER SONAME 'go_udf.so';
@@ -47,9 +46,23 @@ void go_isa_deinit(UDF_INIT *initid);
 long long go_isa(UDF_INIT *initid, UDF_ARGS *args,
               char *is_null, char *error);
 
+static go_id goID(const char* s)
+	{
+	char *p2=NULL;
+	go_id id;
+	if(!(toupper(s[0])=='G' && toupper(s[1])=='O' && s[2]==':'))
+		{
+		return -1;
+		}
+	id=strtol(&s[3],&p2,10);
+	if(*p2!=0 || id==0 || id==INT_MAX || id==INT_MIN)
+		{
+		return -1;
+		}
+	return id;
+	}
 
-
-static int lower_bound(const TermDBPtr termsdb, const char* name)
+static int lower_bound(const TermDBPtr termsdb, go_id id)
 	{
 	int low = 0;
 	int len= termsdb->n_terms;
@@ -58,7 +71,7 @@ static int lower_bound(const TermDBPtr termsdb, const char* name)
 		{
 		int half=len/2;
 		int mid=low+half;
-		if( strncmp(termsdb->terms[mid].child,name,MAX_TERM_LENGTH)<0)
+		if( termsdb->terms[mid].child_id - id <0)
 			{
 			low=mid;
 			++low;
@@ -73,17 +86,16 @@ static int lower_bound(const TermDBPtr termsdb, const char* name)
 	}
 
 
-static int termdb_findIndexByName(const TermDBPtr termsdb,const char* name)
+static int termdb_findIndexById(const TermDBPtr termsdb,go_id id)
 	{
 	int i=0;
-	if(name==NULL || termsdb==NULL || termsdb->terms==NULL || termsdb->n_terms==0) return -1;
-	i= lower_bound(termsdb,name);
-	if(i<0 || i  >= termsdb->n_terms || strcmp(termsdb->terms[i].child,name)!=0) return -1;
-	
+	if(id<0 || termsdb==NULL || termsdb->terms==NULL || termsdb->n_terms==0) return -1;
+	i= lower_bound(termsdb,id);
+	if(i<0 || i  >= termsdb->n_terms || termsdb->terms[i].child_id!=id) return -1;
 	return i;	
 	}
 
-static int recursive_search(const TermDBPtr db,int index, const char* parent,int depth)
+static int recursive_search(const TermDBPtr db,int index, go_id parent_id,int depth)
 	{
 	int rez=0;
 	int start=index;
@@ -91,14 +103,14 @@ static int recursive_search(const TermDBPtr db,int index, const char* parent,int
 	
 	if(start<0 || start>=db->n_terms) return 0;
 	
-	if(strcmp(db->terms[index].child,parent)==0) return 1;
+	if(db->terms[index].child_id==parent_id) return 1;
 	while(index < db->n_terms)
 		{
-		if(strcmp(db->terms[index].child,db->terms[start].child)!=0) break;
-		if(strcmp(db->terms[index].parent,parent)==0) return 1;
-		parent_idx= termdb_findIndexByName(db,db->terms[index].parent);
+		if( db->terms[index].child_id != db->terms[start].child_id) break;
+		if(db->terms[index].parent_id==parent_id) return 1;
+		parent_idx= termdb_findIndexById(db,db->terms[index].parent_id);
 		
-		rez= recursive_search(db,parent_idx,parent,depth+1);
+		rez= recursive_search(db,parent_idx,parent_id,depth+1);
 		if(rez==1 )  return 1;
 		++index;
 		}
@@ -135,9 +147,9 @@ my_bool go_isa_init(
         return 1;
         }
   
-  if((in=fopen(GO_PATH,"r"))==NULL)
+  if((in=fopen(TERMDB_FILENAME,"r"))==NULL)
         {
-        strncpy(message,"Cannot open " GO_PATH ,MYSQL_ERRMSG_SIZE);
+        snprintf(message,MYSQL_ERRMSG_SIZE,"Cannot open %s.",TERMDB_FILENAME );
 	free(termdb);
         return 1;
         }
@@ -189,9 +201,9 @@ void  go_isa_deinit(UDF_INIT *initid)
 long long go_isa(UDF_INIT *initid, UDF_ARGS *args,
               char *is_null, char *error)
  {
-  long dnaLength= args->lengths[0];
-  const char *child=args->args[0];
-  const char *parent=args->args[0];
+  //long dnaLength= args->lengths[0];
+  //const char *child=args->args[0];
+  //const char *parent=args->args[0];
   char name1[MAX_TERM_LENGTH];
   char name2[MAX_TERM_LENGTH];
   TermDBPtr termdb=(TermDBPtr)initid->ptr;
@@ -212,12 +224,12 @@ long long go_isa(UDF_INIT *initid, UDF_ARGS *args,
   strncpy(name2,args->args[1],args->lengths[1]);	
   name2[args->lengths[1]]=0;
 
- index=termdb_findIndexByName(termdb,name1);
+ index=termdb_findIndexById(termdb,goID(name1));
  if(index==-1)
 	{
     	return 0;
 	}
- return recursive_search(termdb,index,name2,0);
+ return recursive_search(termdb,index,goID(name2),0);
  }
 
 

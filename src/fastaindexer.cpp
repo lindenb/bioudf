@@ -47,15 +47,29 @@ int main(int argc,char **argv)
 	int optind=1;
 	std::vector<Index*> indexes;
 	std::string::size_type max_name_length(0);
-	std::cout << "#include <stdio.h>\n";
-	std::cout << "static const char* fasta_filenames[]={" << std::endl;
+
+	for(int i=optind; i<argc;++i)
+		{
+		if(argv[i][0]!='/')
+			{
+			std::cerr << "expected a full path name but got "<< argv[i] << std::endl;
+			return EXIT_FAILURE;
+			}
+		}
+
+
+	std::cout << "#ifndef FAIDX_H\n#define FAIDX_H\n";
+	std::cout << "#define FASTA_FILE_COUNT \t"
+		<< (argc-optind)
+		<< std::endl;
+	std::cout << "static const char* fasta_filenames[FASTA_FILE_COUNT]={" << std::endl;
 	
 	
 	for(int i=optind; i<argc;++i)
 		{
-		std::cout << "\t\"" << argv[i]<< "\", //"<< (i-optind) << "th" << std::endl; 
+		std::cout << "\t\"" << argv[i]<< "\" " <<(i+1==argc?"":",") <<" /* "<< (i-optind) << "th" << " */" << std::endl; 
 		}
-	std::cout << "\tNULL};\n" << std::endl;
+	std::cout << "};\n" << std::endl;
 	
 	for(int i=optind; i<argc;++i)
 		{
@@ -151,28 +165,28 @@ int main(int argc,char **argv)
 		std::fclose(in);
 		}
 	std::sort(indexes.begin(),indexes.end(),Index::lt);
-	std::cout << "#define FASTA_SEQUENCE_MAX_NAME_LENGTH "
+	std::cout << "#define FASTA_SEQUENCE_MAX_NAME_LENGTH\t"
 		<< (max_name_length+1)
 		<< std::endl;
 	std::cout << "typedef struct FastaIndex_t\n"
-		<< "  {\n"
-		<< "  char name[FASTA_SEQUENCE_MAX_NAME_LENGTH];\n"
-		<< "  int fileIndex;\n"
-		<< "  unsigned long seqLength;\n"
-		<< "  unsigned long offsetSeqStart;\n"
-		<< "  unsigned long offsetSeqEnd;\n"
-		<< "  int lineSize;\n"
-		<< "  }FastaIndex,*FastaIndexPtr;"
+		<< "\t{\n"
+		<< "\tchar name[FASTA_SEQUENCE_MAX_NAME_LENGTH];\n"
+		<< "\tint fileIndex;\n"
+		<< "\tunsigned long seqLength;\n"
+		<< "\tunsigned long offsetSeqStart;\n"
+		<< "\tunsigned long offsetSeqEnd;\n"
+		<< "\tint lineSize;\n"
+		<< "\t}FastaIndex,*FastaIndexPtr;"
 		<< std::endl;
-	std::cout << "static const int FASTA_SEQUENCE_COUNT="
+	std::cout << "#define FASTA_SEQUENCE_COUNT\t"
 		<< (indexes.size())
-		<< ";" << std::endl;
+		<< std::endl;
 	std::cout << "static const FastaIndex fastaIndexes[FASTA_SEQUENCE_COUNT]={\n";
 	for(std::vector<Index*>::size_type i=0;i< indexes.size();++i)
 		{
 		Index* curr= indexes.at(i);
 		if(i>0) std::cout << ",\n"; 
-		std::cout << "{";
+		std::cout << "\t{";
 		std::cout << "\"" << curr->name << "\","
 			<< curr->file_index << ","
 			<< curr->seqLength << ","
@@ -184,21 +198,7 @@ int main(int argc,char **argv)
 		delete curr;
 		}
 	std::cout << "\n};" << std::endl;
-	std::cout << "int main(int argc,char** argv) { return 0;}\n";
-	//ECHO
-	/*
-					fputs("<fi:Index>\n",stdout); 
-					fputs("  <fi:source rdf:resource=\"file://",stdout);
-					escape(argv[optind]);
-					fputs("\"/>\n",stdout);
-					fputs("  <dc:title>",stdout);
-					escape(seqName);
-					fputs("</dc:title>\n",stdout);
-					printf("  <fi:line-size rdf:datatype=\"http://www.w3.org/2001/XMLSchema#int\">%d</fi:line-size>\n",indexLineSize);
-					printf("  <fi:start rdf:datatype=\"http://www.w3.org/2001/XMLSchema#unsignedLong\">%lu</fi:start>\n",offsetSeqStart);
-					printf("  <fi:end rdf:datatype=\"http://www.w3.org/2001/XMLSchema#unsignedLong\">%lu</fi:end>\n",offsetSeqEnd);
-					printf("  <fi:length rdf:datatype=\"http://www.w3.org/2001/XMLSchema#int\">%d</fi:length>\n",seqLength);
-					fputs("</fi:Index>\n",stdout); 
-					free(seqName);*/
+	std::cout << "#endif" << std::endl;
 	return EXIT_SUCCESS;
 	}
+

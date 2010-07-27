@@ -3,25 +3,46 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <limits.h>
 #include "term.h"
+
+
+
 
 static const char GO_NS[]="http://www.geneontology.org/dtds/go.dtd#";
 static const char RDF_NS[]="http://www.w3.org/1999/02/22-rdf-syntax-ns#";
 
 static TermDB termdb={NULL,0};
 
+#define SAME(a,b) (xmlStrcmp(BAD_CAST  a,BAD_CAST   b)==0)
+
+static go_id goId(const char* s)
+	{
+	go_id id;
+	if(strncmp(s,"GO:",3)!=0)
+		{
+		fprintf(stderr,"Bad go identifier \"%s\".",s);
+		exit(EXIT_FAILURE);
+		}
+	id=atoi(&s[3]);
+	if(id==0 || id==INT_MAX || id==INT_MIN)
+		{
+		fprintf(stderr,"Bad go identifier \"%s\".",s);
+		exit(EXIT_FAILURE);
+		}
+	return id;
+	}
 
 static void scanterm(xmlNode *term)
 	{
-	xmlAttrPtr rsrc;
 	xmlNode *n=NULL;
 	xmlChar * acn=NULL;
 	for(n=term->children; n!=NULL; n=n->next)
 		{
 		if (n->type != XML_ELEMENT_NODE) continue;
-		if(strcmp(n->name,"accession")==0 &&
+		if(SAME( n->name,"accession") &&
 			n->ns!=NULL && n->ns->href!=NULL &&
-			strcmp(n->ns->href,GO_NS)==0)
+			SAME(n->ns->href,GO_NS))
 			{
 			acn= xmlNodeGetContent(n);
 			break;
@@ -32,15 +53,15 @@ static void scanterm(xmlNode *term)
 	for(n=term->children; n!=NULL; n=n->next)
 		{
 		if (n->type != XML_ELEMENT_NODE) continue;
-		if(strcmp(n->name,"is_a")==0 &&
+		if(SAME(n->name,"is_a") &&
 			n->ns!=NULL && n->ns->href!=NULL &&
-			strcmp(n->ns->href,GO_NS)==0
+			SAME(n->ns->href,GO_NS)
 			)
 			{
-			xmlChar* is_a=xmlGetNsProp(n,"resource",RDF_NS);
+			xmlChar* is_a=xmlGetNsProp(n,BAD_CAST "resource",BAD_CAST RDF_NS);
 			if(is_a!=NULL)
 				{
-				char* p=strstr(is_a,"#GO:");
+				char* p=strstr((const char*)is_a,"#GO:");
 				if(p!=NULL)
 					{
 					++p;
@@ -50,8 +71,9 @@ static void scanterm(xmlNode *term)
 						fprintf(stderr,"out of memory\n");
 						exit(EXIT_FAILURE);
 						}
-					strncpy(termdb.terms[termdb.n_terms].parent,p,MAX_TERM_LENGTH);
-					strncpy(termdb.terms[termdb.n_terms].child,acn,MAX_TERM_LENGTH);
+					
+					termdb.terms[termdb.n_terms].parent_id=goId(p);
+					termdb.terms[termdb.n_terms].child_id=goId((const char*)acn);
 					//fprintf(stdout,"%s\t%s\n",termdb.terms[termdb.n_terms].child,termdb.terms[termdb.n_terms].parent);
 					++termdb.n_terms;				
 					}
@@ -71,12 +93,12 @@ static void scanterm(xmlNode *term)
 static void scanterms(xmlNode *root_element)
 	{
 	xmlNode *n=NULL;
-	xmlElement* e;
 	for(n=root_element->children; n!=NULL; n=n->next)
 		{
 		if (n->type != XML_ELEMENT_NODE) continue;
-		if(strcmp(n->name,"term")==0 &&
-			n->ns!=NULL && n->ns->href!=NULL && strcmp(n->ns->href,GO_NS)==0)
+		if(SAME(n->name,"term") &&
+			n->ns!=NULL && n->ns->href!=NULL &&
+			SAME(n->ns->href,GO_NS))
 			{
 			scanterm(n);
 			}
@@ -91,7 +113,6 @@ static void readRDF(const char* filename)
 	{
 	xmlDoc *doc = xmlReadFile(filename,NULL,0);
 	xmlNode *root_element = NULL;
-	xmlNode *n=NULL;
 	if(doc==NULL)
 		{
 		fprintf(stderr,"Cannot read %s\n",filename);
@@ -106,7 +127,7 @@ static void readRDF(const char* filename)
 		exit(EXIT_FAILURE);
 		}
 	scanterms(root_element);
-	 xmlFreeDoc(doc);
+	xmlFreeDoc(doc);
 	}
 
 
@@ -115,9 +136,9 @@ static int cmp_term(const void * o1, const void * o2)
 	{
 	TermPtr a=(TermPtr)o1;
 	TermPtr b=(TermPtr)o2;
-	int i=strcmp(a->child,b->child);
+	int i=a->child_id - b->child_id;
 	if(i!=0) return i;
-	return strcmp(a->parent,b->parent);
+	return a->parent_id - b->parent_id;
 	}
 
 int main(int argc, char** argv)
@@ -147,5 +168,10 @@ int main(int argc, char** argv)
 	fflush(out);
 	fclose(out);
 	free(termdb.terms);
+	printf("#ifndef GO_DATABASE_H\n#define GO_DATABASE_H\n");
+	printf("#include \"term.h\"\n");
+	printf("#define TERMDB_SIZE %d\n",termdb.n_terms);
+	printf("#define TERMDB_FILENAME \"%s\"\n",argv[1]);
+	printf("#endif\n");
 	return 0;
 	}

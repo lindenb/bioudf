@@ -12,7 +12,7 @@ WWW:	http://plindenbaum.blogspot.com
 #include <errno.h>
 #include <limits.h>
 
-
+#include "fastaindexer.h"
 
 #ifndef GETSEQ_PREFIX
 	#define GETSEQ_PREFIX getSeq
@@ -34,52 +34,17 @@ WWW:	http://plindenbaum.blogspot.com
 	#define MIN(a,b) (a<b?(a):(b))
 #endif
 
-/** number of distinct fasta files */
-#define GETSEQ_NUM_FILES	<xsl:value-of select="count(/rdf:RDF/fi:Index/fi:source[generate-id() = generate-id(key('filenames',@rdf:resource))])"/>
 
 
 /** FILE to fasta file */
 typedef struct file_array
 	{
 	/** flag -1 if file couldn't be opened */
-	int flag[GETSEQ_NUM_FILES];
+	int flag[FASTA_FILE_COUNT];
 	/** fasta file */
-	FILE* file[GETSEQ_NUM_FILES];
+	FILE* file[FASTA_FILE_COUNT];
 	}FileArray,*FileArrayPtr;
-#ifdef XXXXXXXXXXXXXXXXXXXXX
-/** indexes for a sequence */
-typedef struct fasta_index_t
-	{
-	/** fastaFile index */
-	int fileIndex; 
-	/** offset sequence start */
-	long seqStart;
-	/** offset sequence end */
-	long seqEnd;
-	/** length of a fasta line */
-	int lineSize;
-	/** line of a fasta sequence */
-	int length;
-	}FastaIndex,*FastaIndexPtr;
 
-/** all the FastaIndex for each sequence */
-static const FastaIndex  FASTA_INDEXES[]={
-	{-1,0L,0L,0,0}
-	};
-typedef struct title2fastaIndex
-	{
-	char title[GETSEQ_MAX_TITLE_LENGTH];
-	int fastaIndex;
-	}Title2FastaIndex,*Title2FastaIndexPtr;
-#endif
-
-
-
-/** mapping dc:title to index in FASTA_INDEXES ordered by name for bsearch */
-static const Title2FastaIndex name2index[GETSEQ_COUNT_NAMES]=
-	{
-	
-	};
 
 /** comparator for bsearch */
 static int _cmpFastaIndex( const void* a, const void* b) 
@@ -97,7 +62,7 @@ static const FastaIndexPtr  fastaIndexFromName(const char* seqName,char *errMsg)
 		snprintf(errMsg,GETSEQ_MAX_LENGTH_ERR_MESSAGE,"name is nil\n");
 		return NULL;
 		}
-	ptr=(Title2FastaIndexPtr)bsearch((void*)seqName,(void*)name2index,GETSEQ_COUNT_NAMES,sizeof(Title2FastaIndex),_cmpFastaIndex);
+	ptr=(FastaIndexPtr)bsearch((void*)seqName,(void*)fastaIndexes,FASTA_SEQUENCE_COUNT,sizeof(FastaIndex),_cmpFastaIndex);
 	if(ptr==NULL)
 		{
 		snprintf(errMsg,GETSEQ_MAX_LENGTH_ERR_MESSAGE,"unknown sequence \"%s\" ?\n",seqName);

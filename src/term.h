@@ -3,10 +3,15 @@
 
 #define MAX_TERM_LENGTH 12
 
+
+
+
+typedef int go_id;
+
 typedef struct Term_t
 	{	
-	char child[MAX_TERM_LENGTH];
-	char parent[MAX_TERM_LENGTH];
+	go_id child_id;
+	go_id parent_id;
 	} Term,*TermPtr;
 
 typedef struct Termdb
@@ -14,7 +19,6 @@ typedef struct Termdb
 	TermPtr terms;
 	int n_terms;
 	} TermDB,*TermDBPtr;
-
 
 
 #endif

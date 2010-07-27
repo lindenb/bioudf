@@ -1,3 +1,10 @@
+#include <my_global.h>
+#include <m_ctype.h>
+#include <mysql.h>
+#include <m_string.h>
+#include <stdio.h>
+#include <stdlib.h>
+
 /**
  * inspired from Kent, et. al. Genome Research 2002.12:996-1006
  * http://genome.cshlp.org/content/12/6/996.full
@@ -95,7 +102,7 @@ static int ucsc512Bin(int chromStart,int chromEnd)
 	return ucscBin(&Ucsc512,chromStart,chromEnd);
 	}
 
-my_bool jKentBin_init(UDF_INIT *initid, UDF_ARGS *args, char *message);
+my_bool jKentBin_init(UDF_INIT *initid, UDF_ARGS *args, char *message)
 	{
 	if (args->arg_count != 2)
 		{

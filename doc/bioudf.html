@@ -31,7 +31,91 @@ pre	{
 <body>
 <h1>Mysql User Defined Functions for Bioinformatics</h1>
 <h2>Introduction</h2>
+<h3>Edit <code>make.properties</code></h3>
+mysql.libdir is where the library should be saved For example<pre>/usr/lib</pre>On mysql <b>5.1.37</b> you can get it via:<pre>mysql_config --plugindir</pre>
 <h2>BioUDFs</h2>
+
+<div>
+<h3>taxonComm</h3>
+<h4>About</h4><p>Get a label for a taxon in the <a href="http://www.ncbi.nlm.nih.gov/Taxonomy/taxonomyhome.html/">NCBI taxonomy</a>.</p>
+<h4>Create Function</h4>
+<pre>create function taxonName returns string soname "taxonudf.so";
+Query OK, 0 rows affected (0.03 sec)
+</pre>
+<h4>Invoke Function</h4>
+<pre>select taxon,taxonName(taxon) from t1 where taxonChildOf(taxon,taxonId("Hominidae"));
+
++-------+-------------------------------+
+| taxon | taxon_name(taxon)             |
++-------+-------------------------------+
+|  9605 | Homo                          |
+|  9606 | Homo sapiens                  |
+| 63221 | Homo sapiens neanderthalensis |
++-------+-------------------------------+
+3 rows in set (0.00 sec)
+
+
+</pre>
+<h4>Drop Function</h4>
+<pre>DROP FUNCTION taxonName;
+Query OK, 0 rows affected (0.00 sec)</pre>
+</div>
+
+
+<div>
+<h3>taxonId</h3>
+<h4>About</h4><p>Get a label for a taxon in the <a href="http://www.ncbi.nlm.nih.gov/Taxonomy/taxonomyhome.html/">NCBI taxonomy</a>.</p>
+<h4>Create Function</h4>
+<pre>create function taxonName returns string soname "taxonudf.so";
+Query OK, 0 rows affected (0.03 sec)
+</pre>
+<h4>Invoke Function</h4>
+<pre>select taxon,taxonName(taxon) from t1 where taxonChildOf(taxon,taxonId("Hominidae"));
+
++-------+-------------------------------+
+| taxon | taxon_name(taxon)             |
++-------+-------------------------------+
+|  9605 | Homo                          |
+|  9606 | Homo sapiens                  |
+| 63221 | Homo sapiens neanderthalensis |
++-------+-------------------------------+
+3 rows in set (0.00 sec)
+
+
+</pre>
+<h4>Drop Function</h4>
+<pre>DROP FUNCTION taxonName;
+Query OK, 0 rows affected (0.00 sec)</pre>
+</div>
+
+
+<div>
+<h3>taxonName</h3>
+<h4>About</h4><p>Get a label for a taxon in the <a href="http://www.ncbi.nlm.nih.gov/Taxonomy/taxonomyhome.html/">NCBI taxonomy</a>.</p>
+<h4>Create Function</h4>
+<pre>create function taxonName returns string soname "taxonudf.so";
+Query OK, 0 rows affected (0.03 sec)
+</pre>
+<h4>Invoke Function</h4>
+<pre>select taxon,taxonName(taxon) from t1 where taxonChildOf(taxon,taxonId("Hominidae"));
+
++-------+-------------------------------+
+| taxon | taxon_name(taxon)             |
++-------+-------------------------------+
+|  9605 | Homo                          |
+|  9606 | Homo sapiens                  |
+| 63221 | Homo sapiens neanderthalensis |
++-------+-------------------------------+
+3 rows in set (0.00 sec)
+
+
+</pre>
+<h4>Drop Function</h4>
+<pre>DROP FUNCTION taxonName;
+Query OK, 0 rows affected (0.00 sec)</pre>
+</div>
+
+<div>
 <h3>Translate</h3>
 <h4>About</h4><p>Translate a DNA to a protein using the standard genetic code.</p>
 <h4>Create Function</h4>
@@ -51,6 +135,7 @@ Query OK, 0 rows affected (0.03 sec)
 <h4>Drop Function</h4>
 <pre>DROP FUNCTION translate;
 Query OK, 0 rows affected (0.00 sec)</pre>
+</div>
 <hr/>
 <a href="http://plindenbaum.blogspot.com">Pierre Lindenbaum PhD.</a> 2010.
 </body>
