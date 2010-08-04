@@ -9,12 +9,6 @@ all:
 	echo "make jkentbin"
 	echo "make go"
 	echo "make faidx"
-	echo "make revcomp"
-
-revcomp:${mysql.libdir}/revcomp.so
-${mysql.libdir}/revcomp.so: src/revcomp.c
-	$(CC)  $(CFLAGS) -o$@ src/revcomp.c 
-
 
 translate:${mysql.libdir}/translate.so
 ${mysql.libdir}/translate.so: src/translate.c

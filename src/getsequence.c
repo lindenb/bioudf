@@ -1,8 +1,32 @@
-/** 
+/**
 
 Author:	Pierre Lindenbaum PhD
 Mail:	plindenbaum@yahoo.fr
 WWW:	http://plindenbaum.blogspot.com
+
+Copyright (c) 2010 Pierre Lindenbaum PhD
+
+Permission is hereby granted, free of charge, to any person obtaining
+a copy of this software and associated documentation files (the
+``Software''), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject to
+the following conditions:
+
+The above copyright notice and this permission notice shall be included
+in all copies or substantial portions of the Software.
+
+The name of the authors when specified in the source files shall be
+kept unmodified.
+
+THE SOFTWARE IS PROVIDED ``AS IS'', WITHOUT WARRANTY OF ANY KIND, EXPRESS
+OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT SHALL 4XT.ORG BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 */
 #include <mysql.h>
@@ -14,26 +38,15 @@ WWW:	http://plindenbaum.blogspot.com
 
 #include "fastaindexer.h"
 
-#ifndef GETSEQ_PREFIX
-	#define GETSEQ_PREFIX getSeq
-#endif
 
 #ifndef GETSEQ_BUFFER_SIZE
 	#define GETSEQ_BUFFER_SIZE BUFSIZ 
 #endif
 
-#ifdef MYSQL_VERSION
-	#define GETSEQ_MAX_LENGTH_ERR_MESSAGE MYSQL_ERRMSG_SIZE
-#endif
-
-#ifndef GETSEQ_MAX_LENGTH_ERR_MESSAGE
-	#define GETSEQ_MAX_LENGTH_ERR_MESSAGE 100
-#endif
 
 #ifndef MIN
 	#define MIN(a,b) (a<b?(a):(b))
 #endif
-
 
 
 /** FILE to fasta file */
@@ -56,19 +69,19 @@ static int _cmpFastaIndex( const void* a, const void* b)
 /** returns a FastaIndexPtr from the title of a sequence */
 static const FastaIndexPtr  fastaIndexFromName(const char* seqName,char *errMsg)
 	{
-	Title2FastaIndexPtr ptr; 
+	FastaIndexPtr ptr; 
 	if(seqName==NULL)
 		{
-		snprintf(errMsg,GETSEQ_MAX_LENGTH_ERR_MESSAGE,"name is nil\n");
+		snprintf(errMsg,MYSQL_ERRMSG_SIZE,"name is nil\n");
 		return NULL;
 		}
 	ptr=(FastaIndexPtr)bsearch((void*)seqName,(void*)fastaIndexes,FASTA_SEQUENCE_COUNT,sizeof(FastaIndex),_cmpFastaIndex);
 	if(ptr==NULL)
 		{
-		snprintf(errMsg,GETSEQ_MAX_LENGTH_ERR_MESSAGE,"unknown sequence \"%s\" ?\n",seqName);
+		snprintf(errMsg,MYSQL_ERRMSG_SIZE,"unknown sequence \"%s\" ?\n",seqName);
 		return NULL;
 		}
-	return  ( const FastaIndexPtr)&FASTA_INDEXES[ptr->fastaIndex];
+	return ptr;
 	}
 
 /** the core of the program, fseek to the correct index in the file , reads the sequence and returns it */
@@ -90,25 +103,29 @@ static char* fetch_sequence(
 		#ifdef GETSEQ_MAX_LENGTH
 		if(length>=GETSEQ_MAX_LENGTH)
 			{
-			snprintf(errMsg,GETSEQ_MAX_LENGTH_ERR_MESSAGE,"length(%s)>=max-length(%d)\n",length,GETSEQ_MAX_LENGTH_ERR_MESSAGE);
+			snprintf(errMsg,MYSQL_ERRMSG_SIZE,
+				"length(%s)>=max-length(%ld)\n",
+				length,
+				MYSQL_ERRMSG_SIZE
+				);
 			return NULL;
 			}
 		#endif
 		if(start < 0)
 			{
-			snprintf(errMsg,GETSEQ_MAX_LENGTH_ERR_MESSAGE,"start<0:%d\n",start);
+			snprintf(errMsg,MYSQL_ERRMSG_SIZE,"start<0:%d\n",start);
 			return NULL;
 			}
-		if(start+length> fastaIndex->length)
+		if(start+length> fastaIndex->seqLength)
 			{
-			snprintf(errMsg,GETSEQ_MAX_LENGTH_ERR_MESSAGE,"start=%d length=%d > size=%d\n",start,length,fastaIndex->length);
+			snprintf(errMsg,MYSQL_ERRMSG_SIZE,"start=%d length=%d > size=%ld\n",start,length,fastaIndex->seqLength);
 			return NULL;
 			}
 		/* the array of byte where we store the final sequence */
 		seq=malloc(sizeof(char)*(length+1));
 		if(seq==NULL)
 			{
-			snprintf(errMsg,GETSEQ_MAX_LENGTH_ERR_MESSAGE,"out of memory=%d\n",length);
+			snprintf(errMsg,MYSQL_ERRMSG_SIZE,"out of memory=%d\n",length);
 			return NULL;
 			}
 		
@@ -121,7 +138,7 @@ static char* fetch_sequence(
 		if(buffer==NULL)
 			{
 			free(seq);
-			snprintf(errMsg,GETSEQ_MAX_LENGTH_ERR_MESSAGE,"out of memory=%d\n",GETSEQ_BUFFER_SIZE);
+			snprintf(errMsg,MYSQL_ERRMSG_SIZE,"out of memory=%d\n",GETSEQ_BUFFER_SIZE);
 			return NULL;
 			}
 		/**  number of bytes in the buffer */
@@ -132,7 +149,7 @@ static char* fetch_sequence(
 		index_in_seq=0;
 		/** move the IO cursor to the beginning of the sequence */
 		if(fseek(	file,
-			fastaIndex->seqStart +
+			fastaIndex->offsetSeqStart +
 			row_index*(fastaIndex->lineSize+1)+
 			index_in_row,
 			SEEK_SET
@@ -140,7 +157,7 @@ static char* fetch_sequence(
 			{
 			free(seq);
 			free(buffer);
-			snprintf(errMsg,GETSEQ_MAX_LENGTH_ERR_MESSAGE,"fseek failed.\n");
+			snprintf(errMsg,MYSQL_ERRMSG_SIZE,"fseek failed.\n");
 			return NULL;
 			}
 		while(length > 0)
@@ -154,7 +171,7 @@ static char* fetch_sequence(
 					{
 					free(seq);
 					free(buffer);
-					snprintf(errMsg,GETSEQ_MAX_LENGTH_ERR_MESSAGE,"cannot fill buffer.\n");
+					snprintf(errMsg,MYSQL_ERRMSG_SIZE,"cannot fill buffer.\n");
 					return NULL;
 					}
 				}
@@ -183,7 +200,7 @@ static char* fetch_sequence(
 							{
 							free(seq);
 							free(buffer);
-							snprintf(errMsg,GETSEQ_MAX_LENGTH_ERR_MESSAGE,"I/O error expected a carriage return.\n");
+							snprintf(errMsg,MYSQL_ERRMSG_SIZE,"I/O error expected a carriage return.\n");
 							return NULL;
 							}
 						}
@@ -193,7 +210,7 @@ static char* fetch_sequence(
 							{
 							free(seq);
 							free(buffer);
-							snprintf(errMsg,GETSEQ_MAX_LENGTH_ERR_MESSAGE,"I/O error expected a carriage return.\n");
+							snprintf(errMsg,MYSQL_ERRMSG_SIZE,"I/O error expected a carriage return.\n");
 							return NULL;
 							}
 						index_in_buffer++;
@@ -226,40 +243,28 @@ static char* getSequence(FileArrayPtr fileArray,const char* seqName,int start,in
 	#ifdef GETSEQ_MAX_LENGTH
 	if(length>=GETSEQ_MAX_LENGTH)
 		{
-		snprintf(errMsg,GETSEQ_MAX_LENGTH_ERR_MESSAGE,"length(%s)>=max-length(%d)\n",length,GETSEQ_MAX_LENGTH_ERR_MESSAGE);
+		snprintf(errMsg,MYSQL_ERRMSG_SIZE,"length(%s)>=max-length(%d)\n",length,MYSQL_ERRMSG_SIZE);
 		return NULL;
 		}
 	#endif
 	ptr=fastaIndexFromName(seqName,errMsg);
 	if(ptr==NULL) return NULL;
-	
+	//file flagged as bad forever ?
 	if(fileArray->flag[ptr->fileIndex]==-1) return NULL;
+	//file need to be open ?
 	if(fileArray->file[ptr->fileIndex]==NULL)
 		{
+		int err;
 		errno=0;
-		switch(ptr->fileIndex)
-			{
-			 <xsl:for-each select="/rdf:RDF/fi:Index/fi:source[generate-id() = generate-id(key('filenames',@rdf:resource))]">
-			 case <xsl:value-of select="position()-1"/>:
-			 	{
-			 	fileArray->file[<xsl:value-of select="position()-1"/>]=fopen(&quot;<xsl:value-of select="substring(@rdf:resource,8)"/>&quot;,"r");
-				if(fileArray->file[ptr->fileIndex]==NULL)
-					{
-					snprintf(errMsg,GETSEQ_MAX_LENGTH_ERR_MESSAGE,"Cannot open file(index:%d) <xsl:value-of select="substring(@rdf:resource,8)"/> \"%s\" .\n",ptr->fileIndex,strerror(errno));
-					fileArray->flag[ptr->fileIndex]=-1;
-					return NULL;
-					}			 	
-				break;
-			 	}</xsl:for-each>
-			default:
-				{
-				snprintf(errMsg,GETSEQ_MAX_LENGTH_ERR_MESSAGE,"How can I open for file Index %d?\n",ptr->fileIndex);
-				return NULL;
-				}
-			}
+	 	fileArray->file[ptr->fileIndex]=fopen(fasta_filenames[ptr->fileIndex],"r");
+		err=errno;
 		if(fileArray->file[ptr->fileIndex]==NULL)
 			{
-			snprintf(errMsg,GETSEQ_MAX_LENGTH_ERR_MESSAGE,"Cannot open file(index:%d)  \"%s\".\n",ptr->fileIndex,strerror(errno));
+			snprintf(errMsg,MYSQL_ERRMSG_SIZE,"Cannot open file(index:%d) \"%s\" %s.\n",
+				ptr->fileIndex,
+				fasta_filenames[ptr->fileIndex],
+				strerror(err)
+				);
 			fileArray->flag[ptr->fileIndex]=-1;
 			return NULL;
 			}
@@ -278,12 +283,12 @@ static char* getSequence(FileArrayPtr fileArray,const char* seqName,int start,in
 typedef struct mysqlFasta_t
 	{
 	FileArray fileArray;
-	char errMsg[GETSEQ_MAX_LENGTH_ERR_MESSAGE];
+	char errMsg[MYSQL_ERRMSG_SIZE];
 	char* sequence;
 	} MysqlFasta,*MysqlFastaPtr;
 
 /* The initialization function */
-my_bool getsequence_init(
+my_bool faidx_init(
         UDF_INIT *initid,
         UDF_ARGS *args,
         char *message
@@ -315,14 +320,14 @@ my_bool getsequence_init(
   }
 
 /* The deinitialization function */
-void  getsequence_deinit(UDF_INIT *initid)
+void  faidx_deinit(UDF_INIT *initid)
         {
         /* free the memory **/
         if(initid->ptr!=NULL)
                 {
 		int i;
                 MysqlFastaPtr fastaptr=(MysqlFastaPtr)initid->ptr;
-                for(i=0;i< GETSEQ_NUM_FILES;++i)
+                for(i=0;i< FASTA_FILE_COUNT;++i)
 			{
 			if(fastaptr->fileArray.file[i]!=NULL)
 				{
@@ -336,7 +341,7 @@ void  getsequence_deinit(UDF_INIT *initid)
         }
 
 /* The main function. This is where the function result is computed */
-char *getsequence(
+char *faidx(
 	UDF_INIT *initid, UDF_ARGS *args, char *result,
 	unsigned long *length, char *is_null, char *error)
  {
@@ -344,10 +349,10 @@ char *getsequence(
  long namesize=  args->lengths[0];
  long long start_val;
  long long end_val;
- char  seqName[GETSEQ_MAX_TITLE_LENGTH+1];
+ char  seqName[FASTA_SEQUENCE_MAX_NAME_LENGTH+1];
  //bad Name 
  if(args->args[0]==NULL || args->args[1]==NULL || args->args[2]==NULL ||
-    namesize==0 || namesize>GETSEQ_MAX_TITLE_LENGTH)
+    namesize==0 || namesize>FASTA_SEQUENCE_MAX_NAME_LENGTH)
   	{
   	*is_null=1;
     	return NULL;
@@ -371,7 +376,7 @@ char *getsequence(
   	*is_null=1;
     	return NULL;
   	}
-  //remove previous result
+  //remove previous result if any
   if(fastaptr->sequence!=NULL)
   	{
   	free(fastaptr->sequence);
@@ -386,11 +391,11 @@ char *getsequence(
   	);
   if(fastaptr->sequence==NULL)
   	{
-  	//*length=0;
-  	//*is_null=1;
-    	//return NULL;
-	*length=strlen(fastaptr->errMsg);
-	return fastaptr->errMsg;
+  	*length=0;
+  	*is_null=1;
+    	return NULL;
+	//*length=strlen(fastaptr->errMsg);
+	//return fastaptr->errMsg;
   	}
   *length=(end_val-start_val);
   return fastaptr->sequence;
