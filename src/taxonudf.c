@@ -101,8 +101,7 @@ mysql> select cluster,taxon_com(taxon) as ncbi_id from t1 group by cluster;
 #include "taxon.h"
 
 
-static const taxon_id_t NO_TAXON=-1;
-static const taxon_id_t TAXON_ROOT=1;
+
 
 /**
 Binary search for a Taxon from its id
@@ -113,13 +112,21 @@ static int getTaxonById(FILE* in, taxon_id_t taxon_id,TaxonPtr taxonPtr)
 	{
 	long low = 0;
 	long len= TAXON_COUNT;
+	
+	
 	if(taxon_id==NO_TAXON) return -1;
+	
+	
 	while(len>0)
 		{
 		int half=len/2;
 		long mid=low+half;
 		fseek(in,mid*sizeof(Taxon), SEEK_SET);
-		fread(taxonPtr,sizeof(Taxon),1,in);
+		if(fread(taxonPtr,sizeof(Taxon),1,in)!=1)
+			{
+			return -1;
+			}
+		
 		if(taxonPtr->id == taxon_id)
 			{
 			return 0;
@@ -256,7 +263,11 @@ my_bool taxon_name_init(
 	err=errno;
 	if(((TaxonNamePtr)initid->ptr)->in==NULL)
 		{
-		snprintf(message,MYSQL_ERRMSG_SIZE,"Cannot open %s (%s)",TAXON_FILE,strerror(err));
+		snprintf(message,MYSQL_ERRMSG_SIZE,"Cannot open %s (%s)",
+			TAXON_FILE,
+			strerror(err)
+			);
+		
 		free(initid->ptr);
 		initid->ptr=NULL;
 		return 1;
@@ -298,11 +309,87 @@ char *taxon_name(UDF_INIT *initid, UDF_ARGS *args, char *result,
 		{
 		*is_null=1;
 		return NULL; 
-		} 
+		}
+	*is_null=0;
 	*length = strlen(taxon.name);
 	memcpy(env->name, taxon.name,MAX_TAXON_NAME);
-	return initid->ptr;
+	return env->name;
 	}
+
+
+/**
+ * taxon_id
+ *
+ */
+my_bool taxon_id_init(UDF_INIT *initid, UDF_ARGS *args, char *message)
+	{
+	FILE* in=NULL;
+	int err=0;
+	if (!(	args->arg_count == 1 &&
+		args->arg_type[0] == STRING_RESULT
+		))
+		{
+		strncpy(message,"Bad parameter expected one STRING",MYSQL_ERRMSG_SIZE);
+		return 1;
+		}
+	initid->maybe_null=1;
+	initid->ptr=NULL;
+	errno=0;	
+	in=fopen(TAXON_FILE,"rb");
+	err=errno;
+	if(in==NULL)
+		{
+		snprintf(message,MYSQL_ERRMSG_SIZE,"Cannot open %s (%s)",TAXON_FILE,strerror(err));
+		initid->ptr=NULL;
+		return 1;
+		}
+	initid->ptr=(void*)in;
+	
+	return 0;
+	}
+
+void taxon_id_deinit(UDF_INIT *initid)
+	{
+	 if(initid->ptr!=NULL)
+		{
+		FILE* in=((FILE*)initid->ptr);
+		if(in!=NULL)
+			{
+			fclose(in);
+			}
+		initid->ptr=NULL;
+		}
+	}
+
+long long taxon_id(UDF_INIT *initid, UDF_ARGS *args,
+              char *is_null, char *error)
+         {
+         Taxon taxon;
+	 FILE* in=((FILE*)initid->ptr);
+	 long size= args->lengths[0];
+	 char name[MAX_TAXON_NAME+1];
+	 if(args->args[0]==NULL || in==NULL || size>=MAX_TAXON_NAME)
+		{
+		*is_null=1;
+		return ((long long)-1);
+		}
+	
+	strncpy(name,args->args[0],MAX_TAXON_NAME);
+	fseek(in,0L, SEEK_SET);
+
+	while(fread(&taxon,sizeof(Taxon),1,in)==1)
+		{
+		if(strcasecmp(name,taxon.name)==0)
+			{
+			*is_null=0;
+			return taxon.id;
+			}
+		}
+	*is_null=1;
+	return ((long long)-1);
+        }
+	
+
 
 /** taxon_childof */
 
@@ -311,6 +398,15 @@ typedef struct
 	FILE* in;
 	} TaxonChildOf,*TaxonChildOfPtr;
 
+
+
+
+
+/**
+ * expect two taxon_id as parameters
+ * select taxon_childof(taxon1,taxon2)
+ *
+ */
 my_bool taxon_childof_init(UDF_INIT *initid, UDF_ARGS *args, char *message)
 	{
 	int err=0;
@@ -489,12 +585,13 @@ void taxon_com_add( UDF_INIT* initid, UDF_ARGS* args, char* is_null, char* messa
 		}
 	}
 
-char taxon_com_clear(UDF_INIT *initid, char *is_null, char *error)
+void taxon_com_clear(UDF_INIT *initid, char *is_null, char *error)
 	{
 	CommonPtr data = (CommonPtr)initid->ptr;
 	data->common=NO_TAXON;
 	data->is_error=0;
 	*is_null = 0;
+	
 	}
 	
 void taxon_com_reset( UDF_INIT* initid, UDF_ARGS* args,

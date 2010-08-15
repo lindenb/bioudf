@@ -21,6 +21,14 @@ h1	{
 	text-align:center;
 	font-size:200%;
 	}
+
+h3	{
+	margin:10px;
+	padding:10px;
+	font-size:200%;
+	background-color:lightgreen;
+	}
+
 pre	{
 	background-color:lightgray;
 	font-size:150%;
@@ -33,6 +41,7 @@ pre	{
 <h2>Introduction</h2>
 <h3>Edit <code>make.properties</code></h3>
 mysql.libdir is where the library should be saved For example<pre>/usr/lib</pre>On mysql <b>5.1.37</b> you can get it via:<pre>mysql_config --plugindir</pre>
+data.dir should be a full path directory, readeable by mysql.
 <h3>AppArmor</h3>
 <pre> sudo /etc/init.d/apparmor stop</pre>
 <h2>BioUDFs</h2>
@@ -79,14 +88,14 @@ Query OK, 0 rows affected (0.00 sec)</pre>
 
 
 <div>
-<h3>taxonComm</h3>
+<h3>taxon_name</h3>
 <h4>About</h4><p>Get a label for a taxon in the <a href="http://www.ncbi.nlm.nih.gov/Taxonomy/taxonomyhome.html/">NCBI taxonomy</a>.</p>
 <h4>Create Function</h4>
-<pre>create function taxonName returns string soname "taxonudf.so";
+<pre>create function taxon_name returns string soname "taxonudf.so";
 Query OK, 0 rows affected (0.03 sec)
 </pre>
 <h4>Invoke Function</h4>
-<pre>select taxon,taxonName(taxon) from t1 where taxonChildOf(taxon,taxonId("Hominidae"));
+<pre>select taxon,<b>taxon_name</b>(taxon) from t1 where taxon_childof(taxon,taxon_id("Hominidae"));
 
 +-------+-------------------------------+
 | taxon | taxon_name(taxon)             |
@@ -98,20 +107,20 @@ Query OK, 0 rows affected (0.03 sec)
 3 rows in set (0.00 sec)
 </pre>
 <h4>Drop Function</h4>
-<pre>DROP FUNCTION taxonName;
+<pre>DROP FUNCTION taxon_name;
 Query OK, 0 rows affected (0.00 sec)</pre>
 </div>
 
 
 <div>
-<h3>taxonId</h3>
-<h4>About</h4><p>Get a label for a taxon in the <a href="http://www.ncbi.nlm.nih.gov/Taxonomy/taxonomyhome.html/">NCBI taxonomy</a>.</p>
+<h3>taxon_id</h3>
+<h4>About</h4><p>Get the id of a taxon from a scientific name.</p>
 <h4>Create Function</h4>
-<pre>create function taxonName returns string soname "taxonudf.so";
+<pre>create function taxon_id returns integer soname "taxonudf.so";
 Query OK, 0 rows affected (0.03 sec)
 </pre>
 <h4>Invoke Function</h4>
-<pre>select taxon,taxonName(taxon) from t1 where taxonChildOf(taxon,taxonId("Hominidae"));
+<pre>select taxon,taxon_name(taxon) from t1 where taxon_childof(taxon,<b>taxon_id</b>("Hominidae"));
 
 +-------+-------------------------------+
 | taxon | taxon_name(taxon)             |
@@ -125,20 +134,20 @@ Query OK, 0 rows affected (0.03 sec)
 
 </pre>
 <h4>Drop Function</h4>
-<pre>DROP FUNCTION taxonName;
+<pre>DROP FUNCTION taxon_id;
 Query OK, 0 rows affected (0.00 sec)</pre>
 </div>
 
 
 <div>
-<h3>taxonName</h3>
-<h4>About</h4><p>Get a label for a taxon in the <a href="http://www.ncbi.nlm.nih.gov/Taxonomy/taxonomyhome.html/">NCBI taxonomy</a>.</p>
+<h3>taxon_childof</h3>
+<h4>About</h4><p>Get the common ancestor of two <a href="http://www.ncbi.nlm.nih.gov/Taxonomy/taxonomyhome.html/">taxon records</a>.</p>
 <h4>Create Function</h4>
-<pre>create function taxonName returns string soname "taxonudf.so";
+<pre>create function taxon_childof returns integer soname "taxonudf.o";
 Query OK, 0 rows affected (0.03 sec)
 </pre>
 <h4>Invoke Function</h4>
-<pre>select taxon,taxonName(taxon) from t1 where taxonChildOf(taxon,taxonId("Hominidae"));
+<pre>select taxon,taxon_name(taxon) from t1 where <b>taxonChildOf</b>(taxon,taxonId("Hominidae"));
 
 +-------+-------------------------------+
 | taxon | taxon_name(taxon)             |
@@ -155,6 +164,8 @@ Query OK, 0 rows affected (0.03 sec)
 <pre>DROP FUNCTION taxonName;
 Query OK, 0 rows affected (0.00 sec)</pre>
 </div>
+
+
 
 <div>
 <h3>Translate</h3>

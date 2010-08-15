@@ -3,30 +3,23 @@
 #include <string.h>
 #include <errno.h>
 #include <limits.h>
+#include "taxonstruct.h"
 
-typedef struct taxon_t
-	{
-	int id;
-	int parent_id;
-	char* name;
-	}Taxon,*TaxonPtr;
 	
 static int order_by_id(const void *ptr1, const void *ptr2)
 	{
-	return *((int*)ptr1) -  *((int*)ptr2) ;
+	return (((TaxonPtr)ptr1)->id) -  (((TaxonPtr)ptr2)->id) ;
 	}
 	
 int main(int argc,char** argv)
 	{
-	int lenRecord=0;
-	int max_length=1;
 	int i;
 	char line[BUFSIZ];
 	FILE* in;
 	FILE* out;
 	TaxonPtr taxons=NULL;
 	int nTaxons=0;
-	char *ptr;
+
 	
 	if(argc!=4)
 		{
@@ -59,23 +52,22 @@ int main(int argc,char** argv)
 		taxons=realloc(taxons,sizeof(Taxon)*(nTaxons+1));
 		if(taxons==NULL)
 			{
-			fprintf(stderr,"Out of memory\n");
+			fprintf(stderr,"Out of memory cannot realloc for %d\n",nTaxons);
 			return EXIT_FAILURE;
 			}
+		memset(&taxons[nTaxons],0,sizeof(Taxon));
 		taxons[nTaxons].id=atoi(line);
 		if(taxons[nTaxons].id==0 || taxons[nTaxons].id==INT_MAX || taxons[nTaxons].id==INT_MIN )
 			{
-			fprintf(stderr,"bad number %s\n",line);
+			fprintf(stderr,"bad taxon-id number %s\n",line);
 			return EXIT_FAILURE;
 			}
 		taxons[nTaxons].parent_id=atoi(pipe1+3);
 		if(taxons[nTaxons].parent_id==0 || taxons[nTaxons].parent_id==INT_MAX || taxons[nTaxons].parent_id==INT_MIN )
 			{
-			fprintf(stderr,"bad number %s\n",line);
+			fprintf(stderr,"bad parent_id number %s\n",line);
 			return EXIT_FAILURE;
 			}
-		
-		taxons[nTaxons].name=NULL;
 		nTaxons++;
 		}
 	fclose(in);
@@ -109,61 +101,41 @@ int main(int argc,char** argv)
 			fprintf(stderr,"Cannot find %d\n",id);
 			continue;
 			}
-		if(taxon->name!=NULL)
+		if(strlen(taxon->name)!=0)
 			{
-			if(strstr( (pipe2+1),"scientific name")!=NULL)
-				{
-				free(taxon->name);
-				}
-			else
+			if(strstr( (pipe2+1),"scientific name")==NULL)
 				{
 				continue;
 				}
 			}
 		int len= strlen(pipe1+3);
-		if((taxon->name=malloc(len+1))==NULL)
+		if(len+1>=MAX_TAXON_NAME)
 			{
-			fprintf(stderr,"Out of memory");
-			continue;
+			fprintf(stderr,
+				"Ok here we have a problem the max length of a taxon name was defined as %d but here we have len=%d. Please adjust taxonstruct.h", MAX_TAXON_NAME,len);
 			}
 		strcpy(taxon->name,pipe1+3);
 		}
 	fclose(in);
 	
-	/* get max length */
+	
 	for(i=0;i< nTaxons;++i)
 		{
-		int L;
-		if(taxons[i].name==NULL)
+		if(strlen(taxons[i].name)==0)
 			{
 			fprintf(stderr,"Cannot get name for taxon id %d\n",taxons[i].id);
 			return EXIT_FAILURE;
 			}
-		L=strlen(taxons[i].name);
-		if(L>max_length) max_length=L+1;
 		}
 	
 	printf("#ifndef NCBI_TAXON_HEADER\n#define NCBI_TAXON_HEADER\n");
+	printf("#include \"taxonstruct.h\"\n");
 	printf("#define TAXON_FILE \"%s\"\n",argv[3]);
 	printf("#define TAXON_COUNT %d\n",nTaxons);
-	printf("#define MAX_TAXON_NAME %d\n",max_length);
-	printf("typedef int taxon_id_t;\n");
-	printf("typedef struct\n"
-		" {\n"
-		" taxon_id_t id;\n"
-		" taxon_id_t parent_id;\n"
-		" char name[MAX_TAXON_NAME];\n"
-		" }Taxon,*TaxonPtr;\n"
-		);
 	printf("#endif\n");
-	/* save all */
-	lenRecord=(sizeof(int)*2+sizeof(char)*(max_length));
-	ptr=malloc(lenRecord);
-	if(ptr==NULL)
-		{
-		fprintf(stderr,"Out of memory\n");
-		return EXIT_FAILURE;
-		}
+	
+	
+	
 	errno=0;
 	out=fopen(argv[3],"wb");
 	if(out==NULL)
@@ -173,21 +145,19 @@ int main(int argc,char** argv)
 		}
 	for(i=0;i< nTaxons;++i)
 		{
-		memset(ptr,0,lenRecord);
-		memcpy(&ptr[0],&(taxons[i].id),sizeof(int));
-		memcpy(&ptr[sizeof(int)],&(taxons[i].parent_id),sizeof(int));
-		memcpy(&ptr[sizeof(int)*2],taxons[i].name,strlen(taxons[i].name)+1);
-		if(fwrite(ptr,lenRecord,1,out)!=1)
+		if(fwrite(&taxons[i],sizeof(Taxon),1,out)!=1)
 			{
 			fprintf(stderr,"fwrite failed.\n");
 			return EXIT_FAILURE;
 			}
-		free(taxons[i].name);
 		}
-	free(ptr);
+	
 	fflush(out);
 	fclose(out);
 	free(taxons);
+	
+	
+	
 	return 0;
 	}
 

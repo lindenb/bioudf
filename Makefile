@@ -23,9 +23,11 @@ src/taxon.h:bin/readtaxdump
 	tar xfz taxdump.tar.gz names.dmp
 	tar xfz taxdump.tar.gz nodes.dmp
 	mkdir -p bin
+	mkdir -p ${taxonomy.dir}
+	echo "you should have the privileges to install this:"
 	bin/readtaxdump nodes.dmp names.dmp ${taxonomy.dir}/taxonomy.bin > $@
-	rm names.dmp nodes.dmp taxdump.tar.gz taxdump.tar.gz
-	
+	rm -f names.dmp nodes.dmp 
+
 bin/readtaxdump:bin src/readtaxdump.c
 	$(CC) $(OPTCFLAGS)  -o $@ src/readtaxdump.c
 	
