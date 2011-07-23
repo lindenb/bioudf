@@ -188,7 +188,116 @@ Query OK, 0 rows affected (0.03 sec)
 <pre>DROP FUNCTION translate;
 Query OK, 0 rows affected (0.00 sec)</pre>
 </div>
+
+<div>
+<h3>BioParser</h3>
+<h4>About</h4><p>A mysql full-text plugin finding rs## numbers</p>
+<h4>Install Plugin</h4>
+<pre>mysql&gt; INSTALL PLUGIN bioparser SONAME 'bioparser.so';
+Query OK, 0 rows affected (0.00 sec)</pre>
+<h4>Invoke Plugin</h4>
+<pre>mysql&gt; show plugins;
++-----------------------+----------+--------------------+--------------+---------+
+| Name                  | Status   | Type               | Library      | License |
++-----------------------+----------+--------------------+--------------+---------+
+(...)
+| partition             | ACTIVE   | STORAGE ENGINE     | NULL         | GPL     |
+| bioparser             | ACTIVE   | FTPARSER           | bioparser.so | GPL     |
++-----------------------+----------+--------------------+--------------+---------+
+21 rows in set (0.00 sec)
+
+mysql&gt; create table pubmed(
+             abstract TEXT,
+              FULLTEXT (abstract) WITH PARSER bioparser
+             ) ENGINE=MyISAM;
+
+mysql&gt; insert into pubmed(abstract) values("A predictive role in radiation pneumonitis (RP) development was observed for the LIG4 SNP <span style="color:red;">rs1805388</span> (adjusted hazard ratio, 2.08; 95% confidence interval, 1.04-4.12; P = .037 for the CT/TT genotype vs the CC genotype). In addition, men with the TT genotype of the XRCC4 <span style="color:red;">rs6869366</span> SNP and women with AG + AA genotypes of the XRCC5 <span style="color:red;">rs3835</span> SNP also were at increased risk of developing severe RP.");
+Query OK, 1 row affected (0.00 sec)
+
+mysql&gt; insert into pubmed(abstract) values("Nonhomologous end joining (NHEJ) is a pathway that repairs DNA double-strand breaks (DSBs) to maintain genomic stability in response to irradiation. The authors hypothesized that single nucleotide polymorphisms (SNPs) in NHEJ repair genes may affect clinical outcomes in patients with nonsmall cell lung cancer (NSCLC) who receive definitive radio(chemo)therapy.");
+Query OK, 1 row affected (0.00 sec)
+
+mysql&gt;  insert into pubmed(abstract) values("The authors genotyped 5 potentially functional SNPs-x-ray repair complementing defective repair in Chinese hamster cells 4 (XRCC4) reference SNP (rs) number <span style="color:red;">rs6869366</span> (-1394 guanine to thymine [-1394G→T] change) and rs28360071 (intron 3, deletion/insertion), XRCC5 <span style="color:red;">rs3835</span> (guanine to adenine [G→A] change at nucleotide 2408), XRCC6 <span style="color:red;">rs2267437</span> (-1310 cytosine to guanine [C→G) change], and DNA ligase IV (LIG4) <span style="color:red;">rs1805388</span> (threonine-to-isoleucine change at codon 9 [T9I])-and estimated their associations with severe radiation pneumonitis (RP) (grade ≥3) in 195 patients with NSCLC.");
+Query OK, 1 row affected, 1 warning (0.00 sec)
+
+mysql&gt;  insert into pubmed(abstract) values("The current results indicated that NHEJ genetic polymorphisms, particularly LIG4 <span style="color:red;">rs1805388</span>, may modulate the risk of RP in patients with NSCLC who receive definitive radio(chemo)therapy. Large studies will be needed to confirm these findings. ");
+Query OK, 1 row affected (0.00 sec)
+
+mysql&gt;   insert into pubmed(abstract) values("The repair of DNA double-strand breaks (DSBs) is the major mechanism to maintain genomic stability in response to irradiation. We hypothesized that genetic polymorphisms in DSB repair genes may affect clinical outcomes among non-small cell lung cancer (NSCLC) patients treated with definitive radio(chemo)therapy.");
+Query OK, 1 row affected (0.00 sec)
+
+mysql&gt;  insert into pubmed(abstract) values("We also found that RAD51 -135G>C and XRCC2 R188H SNPs were independent prognostic factors for overall survival (adjusted HR = 1.70, 95% CI, 1.14-2.62, P = 0.009 for CG/CC vs. GG; and adjusted HR = 1.70; 95% CI, 1.02-2.85, P = 0.043 for AG vs. GG, respectively) and that the SNP-survival association was most pronounced in the presence of RP.");
+Query OK, 1 row affected, 1 warning (0.01 sec)
+
+mysql&gt; select abstract from pubmed;
++-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| abstract                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
++-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| A predictive role in radiation pneumonitis (RP) development was observed for the LIG4 SNP <span style="color:red;">rs1805388</span> (adjusted hazard ratio, 2.08; 95% confidence interval, 1.04-4.12; P = .037 for the CT/TT genotype vs the CC genotype). In addition, men with the TT genotype of the XRCC4 <span style="color:red;">rs6869366</span> SNP and women with AG + AA genotypes of the XRCC5 <span style="color:red;">rs3835</span> SNP also were at increased risk of developing severe RP.                                                                                                                                                                                           |
+| Nonhomologous end joining (NHEJ) is a pathway that repairs DNA double-strand breaks (DSBs) to maintain genomic stability in response to irradiation. The authors hypothesized that single nucleotide polymorphisms (SNPs) in NHEJ repair genes may affect clinical outcomes in patients with nonsmall cell lung cancer (NSCLC) who receive definitive radio(chemo)therapy.                                                                                                                                                                                                                          |
+| The authors genotyped 5 potentially functional SNPs-x-ray repair complementing defective repair in Chinese hamster cells 4 (XRCC4) reference SNP (rs) number <span style="color:red;">rs6869366</span> (-1394 guanine to thymine [-1394G?T] change) and rs28360071 (intron 3, deletion/insertion), XRCC5 <span style="color:red;">rs3835</span> (guanine to adenine [G?A] change at nucleotide 2408), XRCC6 <span style="color:red;">rs2267437</span> (-1310 cytosine to guanine [C?G) change], and DNA ligase IV (LIG4) <span style="color:red;">rs1805388</span> (threonine-to-isoleucine change at codon 9 [T9I])-and estimated their associations with severe radiation pneumonitis (RP) (grade ?3) in 195 patients with NSCLC. |
+| The current results indicated that NHEJ genetic polymorphisms, particularly LIG4 <span style="color:red;">rs1805388</span>, may modulate the risk of RP in patients with NSCLC who receive definitive radio(chemo)therapy. Large studies will be needed to confirm these findings.                                                                                                                                                                                                                                                                                                                                                  |
+| The repair of DNA double-strand breaks (DSBs) is the major mechanism to maintain genomic stability in response to irradiation. We hypothesized that genetic polymorphisms in DSB repair genes may affect clinical outcomes among non-small cell lung cancer (NSCLC) patients treated with definitive radio(chemo)therapy.                                                                                                                                                                                                                                                                           |
+| We also found that RAD51 -135G>C and XRCC2 R188H SNPs were independent prognostic factors for overall survival (adjusted HR?=?1.70, 95% CI, 1.14-2.62, P?=?0.009 for CG/CC vs. GG; and adjusted HR?=?1.70; 95% CI, 1.02-2.85, P?=?0.043 for AG vs. GG, respectively) and that the SNP-survival association was most pronounced in the presence of RP.                                                                                                                                                                                                                                               |
+| A total of 291 patients (145 male/146 female, mean age (± S.D.) 52.2 (± 13.1) years) with PsA were examined clinically, by standard laboratory tests and their DNA was genotyped for the SNP <span style="color:red;">rs2476601</span> (PTPN22 +1858 C/T). Allelic frequencies were determined and compared with 725 controls.                                                                                                                                                                                                                                                                                                      |
+| this is a test <span style="color:red;">rs2476601</span>, <span style="color:red;">rs1805388</span>, <span style="color:red;">rs3835</span> and <span style="color:red;">rs25</span>                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
++-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+8 rows in set (0.00 sec)
+
+
+mysql&gt; select
+concat(left(abstract,40),"...") as ABSTRACT,
+match(abstract) against("DNA double-strand) as SCORE
+from pubmed group by 2 HAVING SCORE!=0;
+Empty set (0.00 sec)
+
+mysql&gt; select
+concat(left(abstract,40),"...") as ABSTRACT,
+match(abstract) against("<span style="color:red;">rs25</span>") as SCORE
+from pubmed group by 2 HAVING SCORE!=0;
++---------------------------------------------+--------------------+
+| ABSTRACT                                    | SCORE              |
++---------------------------------------------+--------------------+
+| this is a test <span style="color:red;">rs2476601</span>, <span style="color:red;">rs1805388</span>, rs3... | 1.8603347539901733 |
++---------------------------------------------+--------------------+
+1 row in set (0.01 sec)
+
+mysql&gt; select
+concat(left(abstract,40),"...") as ABSTRACT,
+match(abstract) against("<span style="color:red;">rs2476601</span> <span style="color:red;">rs1805388</span> <span style="color:red;">rs6869366</span>") as SCORE
+from pubmed group by 2 HAVING SCORE!=0 order by 2 desc;
++---------------------------------------------+--------------------+
+| ABSTRACT                                    | SCORE              |
++---------------------------------------------+--------------------+
+| A total of 291 patients (145 male/146 fe... |  1.086121916770935 |
+| A predictive role in radiation pneumonit... | 1.0619741678237915 |
+| this is a test <span style="color:red;">rs2476601</span>, <span style="color:red;">rs1805388</span>, rs3... | 1.0502985715866089 |
+| The authors genotyped 5 potentially func... | 1.0388768911361694 |
++---------------------------------------------+--------------------+
+4 rows in set (0.00 sec)
+
+mysql&gt; select
+concat(left(abstract,40),"...") as ABSTRACT,
+match(abstract) against("<span style="color:red;">rs25</span>,<span style="color:red;">rs2476601</span>,<span style="color:red;">rs1805388</span>,<span style="color:red;">rs6869366</span>") as SCORE
+from pubmed group by 2 HAVING SCORE!=0 order by 2 desc;
++---------------------------------------------+--------------------+
+| ABSTRACT                                    | SCORE              |
++---------------------------------------------+--------------------+
+| this is a test <span style="color:red;">rs2476601</span>, <span style="color:red;">rs1805388</span>, rs3... | 2.9106333255767822 |
+| A total of 291 patients (145 male/146 fe... |  1.086121916770935 |
+| A predictive role in radiation pneumonit... | 1.0619741678237915 |
+| The authors genotyped 5 potentially func... | 1.0388768911361694 |
++---------------------------------------------+--------------------+
+4 rows in set (0.00 sec)
+
+
+</pre>
+<h4>uninstall plugin</h4>
+<pre>mysql&gt; UNINSTALL PLUGIN bioparser;
+Query OK, 0 rows affected (0.00 sec)</pre>
+</div>
+
 <hr/>
-<a href="http://plindenbaum.blogspot.com">Pierre Lindenbaum PhD.</a> 2010.
+<a href="http://plindenbaum.blogspot.com">Pierre Lindenbaum PhD.</a> 2011.
 </body>
 </html>
