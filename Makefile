@@ -9,6 +9,7 @@ all:
 	echo "make jkentbin"
 	echo "make go"
 	echo "make faidx"
+	echo "make bioparser"
 
 translate:${mysql.libdir}/translate.so
 ${mysql.libdir}/translate.so: src/translate.c
@@ -61,8 +62,14 @@ bin/fastaindexer:src/fastaindexer.cpp
 	mkdir -p bin
 	$(CPP) $(OPTCFLAGS) -o $@ src/fastaindexer.cpp
 
+bioparser:${mysql.libdir}/bioparser.so
+${mysql.libdir}/bioparser.so: bioparser.c
+	$(CC) $(CFLAGS) -DMYSQL_DYNAMIC_PLUGIN  -o $@  $<
+
+
 clean:
 	rm -f bin/readtaxdump  taxdump.tar.gz src/taxon.h
 	rm -f ${taxonomy.dir}/taxonomy.bin
 	rm -f ${mysql.libdir}/translate.so
+	rm -f ${mysql.libdir}/bioparser.so
 	rm -f data/go_daily-termdb.rdf-xml
